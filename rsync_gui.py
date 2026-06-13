@@ -85,6 +85,42 @@ def t(strings, key, **kwargs):
     return s
 
 
+def make_menu_button(items, on_select, min_width=150):
+    btn = Gtk.MenuButton()
+    btn.set_size_request(min_width, -1)
+    lbl = Gtk.Label(label=items[0] if items else "")
+    btn.add(lbl)
+    menu = Gtk.Menu()
+
+    def build_menu(items, current=None):
+        for child in menu.get_children():
+            menu.remove(child)
+        group = []
+        active = current if current in items else (items[0] if items else None)
+        for text in items:
+            item = Gtk.RadioMenuItem.new_with_label(group, text)
+            group = item.get_group()
+            if text == active:
+                item.set_active(True)
+            def _on_activate(i, t=text):
+                if i.get_active():
+                    lbl.set_text(t)
+                    on_select(t)
+            item.connect("activate", _on_activate)
+            menu.append(item)
+        menu.show_all()
+        if active:
+            lbl.set_text(active)
+
+    build_menu(items)
+    btn.set_popup(menu)
+
+    def update(new_items, current=None):
+        build_menu(new_items, current)
+
+    return btn, lbl, update
+
+
 class RsyncGUI:
     # Option definitions: (attribute, i18n title key, i18n description key, default)
     OPTIONS = [
@@ -135,12 +171,14 @@ class RsyncGUI:
         lang_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=5)
         lang_label = Gtk.Label(label=t(self.strings, "lbl_language"))
         lang_box.pack_start(lang_label, False, False, 0)
-        self.lang_combo = Gtk.ComboBoxText()
-        for code, key in [("de", "lang_de"), ("en", "lang_en"), ("system", "lang_system")]:
-            self.lang_combo.append(code, t(self.strings, key))
-        self.lang_combo.set_active_id(self.cfg.get("lang", "system"))
-        self.lang_combo.connect("changed", self.on_lang_changed)
-        lang_box.pack_start(self.lang_combo, False, False, 0)
+        _lang_items = [t(self.strings, k) for k in ["lang_de", "lang_en", "lang_system"]]
+        _lang_codes = ["de", "en", "system"]
+        _lang_current = t(self.strings, {"de": "lang_de", "en": "lang_en", "system": "lang_system"}.get(self.cfg.get("lang", "system"), "lang_system"))
+        self.lang_menu_btn, self._lang_lbl, _ = make_menu_button(
+            _lang_items, lambda txt: self._on_lang_selected(txt, _lang_items, _lang_codes), min_width=130
+        )
+        self._lang_lbl.set_text(_lang_current)
+        lang_box.pack_start(self.lang_menu_btn, False, False, 0)
         top_box.pack_start(lang_box, False, False, 0)
 
         # Source selection
@@ -331,21 +369,22 @@ class RsyncGUI:
         Notify.uninit()
         Gtk.main_quit()
 
-    def on_lang_changed(self, combo):
-        new_lang = combo.get_active_id()
-        if new_lang and new_lang != self.cfg.get("lang"):
-            self.cfg["lang"] = new_lang
-            save_config(self.cfg)
-            new_strings = load_i18n(resolve_lang(new_lang))
-            dialog = Gtk.MessageDialog(
-                parent=self.window,
-                flags=Gtk.DialogFlags.MODAL,
-                type=Gtk.MessageType.INFO,
-                buttons=Gtk.ButtonsType.OK,
-                message_format=t(new_strings, "restart_hint")
-            )
-            dialog.run()
-            dialog.destroy()
+    def _on_lang_selected(self, text, items, codes):
+        if text in items:
+            code = codes[items.index(text)]
+            if code != self.cfg.get("lang"):
+                self.cfg["lang"] = code
+                save_config(self.cfg)
+                new_strings = load_i18n(resolve_lang(code))
+                dialog = Gtk.MessageDialog(
+                    parent=self.window,
+                    flags=Gtk.DialogFlags.MODAL,
+                    type=Gtk.MessageType.INFO,
+                    buttons=Gtk.ButtonsType.OK,
+                    message_format=t(new_strings, "restart_hint")
+                )
+                dialog.run()
+                dialog.destroy()
 
     def send_notification(self, title, message, urgency=Notify.Urgency.NORMAL):
         # Send a desktop notification
