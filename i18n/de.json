@@ -103,5 +103,7 @@
   "rsync_err_25": "Maximale Anzahl von Löschungen überschritten",
   "rsync_err_30": "Timeout bei der Datenübertragung",
   "rsync_err_35": "Timeout beim Verbindungsaufbau",
-  "rsync_err_unknown": "Unbekannter Fehler (Exit-Code {code})"
+  "rsync_err_unknown": "Unbekannter Fehler (Exit-Code {code})",
+  "tooltip_about": "Über rsync GUI",
+  "about_comments": "Grafische Oberfläche für rsync-Backups.\n\nTeil der GTK3-Toolbox (NoCoderGHG)."
 }

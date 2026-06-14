@@ -103,5 +103,7 @@
   "rsync_err_25": "Maximum number of deletions exceeded",
   "rsync_err_30": "Timeout during data transfer",
   "rsync_err_35": "Timeout during connection setup",
-  "rsync_err_unknown": "Unknown error (exit code {code})"
+  "rsync_err_unknown": "Unknown error (exit code {code})",
+  "tooltip_about": "About rsync GUI",
+  "about_comments": "Graphical frontend for rsync backups.\n\nPart of the GTK3 Toolbox (NoCoderGHG)."
 }
